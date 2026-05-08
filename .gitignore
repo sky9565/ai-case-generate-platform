@@ -10,6 +10,7 @@ dist-ssr/
 *.local
 
 # Editor directories and files
+.trae/
 .vscode/
 .idea/
 *.swp
