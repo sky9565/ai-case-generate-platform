@@ -128,9 +128,50 @@
             </div>
           </div>
 
+          <div v-if="showDraftRestore" class="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <svg class="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+              </svg>
+              <div>
+                <span class="text-sm text-amber-800">检测到未完成的草稿</span>
+                <span class="text-xs text-amber-600 ml-2">保存于 {{ draftSavedTime }}</span>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button
+                @click="dismissDraftRestore"
+                class="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                丢弃
+              </button>
+              <button
+                @click="restoreDraft"
+                class="px-4 py-1.5 text-xs text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors font-medium"
+              >
+                恢复草稿
+              </button>
+            </div>
+          </div>
+
           <div v-show="activeStep === 1" class="bg-white rounded-lg shadow-sm p-6">
             <div class="flex items-center justify-between mb-6">
-              <h2 class="text-lg font-semibold text-gray-800">需求录入</h2>
+              <div class="flex items-center space-x-3">
+                <h2 class="text-lg font-semibold text-gray-800">需求录入</h2>
+                <span v-if="draftStatus === 'unsaved'" class="flex items-center space-x-1 text-xs text-amber-500">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                  <span>未保存</span>
+                </span>
+                <span v-else-if="draftStatus === 'saved'" class="flex items-center space-x-1 text-xs text-green-500">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                  <span>已保存</span>
+                </span>
+                <span v-else-if="draftStatus === 'error'" class="flex items-center space-x-1 text-xs text-red-500">
+                  <span>保存失败</span>
+                </span>
+              </div>
               <div class="flex bg-gray-100 rounded-lg p-1">
                 <button
                   @click="switchInputMode('text')"
@@ -252,7 +293,19 @@
             </div>
             <template v-else>
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-lg font-semibold text-gray-800">标准文档预览</h2>
+                <div class="flex items-center space-x-3">
+                  <h2 class="text-lg font-semibold text-gray-800">标准文档预览</h2>
+                  <span v-if="draftStatus === 'unsaved'" class="flex items-center space-x-1 text-xs text-amber-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    <span>未保存</span>
+                  </span>
+                  <span v-else-if="draftStatus === 'saved'" class="flex items-center space-x-1 text-xs text-green-500">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>已保存</span>
+                  </span>
+                </div>
                 <div class="flex items-center space-x-2">
                   <span class="flex items-center space-x-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -417,6 +470,16 @@
                 <div class="flex items-center space-x-2">
                   <h2 class="text-lg font-semibold text-gray-800">拆分后的需求</h2>
                   <span class="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{{ splitRequirements.length }} 条</span>
+                  <span v-if="draftStatus === 'unsaved'" class="flex items-center space-x-1 text-xs text-amber-500">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    <span>未保存</span>
+                  </span>
+                  <span v-else-if="draftStatus === 'saved'" class="flex items-center space-x-1 text-xs text-green-500">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>已保存</span>
+                  </span>
                 </div>
                 <button
                   @click="addRequirement"
@@ -671,6 +734,7 @@
 <script>
 import { REQUIREMENT_TEMPLATE } from '@/utils/requirementTemplate'
 import { analyzeQuality, getLevelConfig } from '@/utils/qualityScorer'
+import { initDraftManager, getDraft, hasDraft, scheduleAutoSave, saveNow, clearDraft, formatSaveTime } from '@/utils/draftManager'
 
 export default {
   name: 'Standardization',
@@ -696,7 +760,10 @@ export default {
         { id: '2', title: '数据导出功能需求', date: '2026-05-09 10:15' },
         { id: '3', title: '权限管理系统需求', date: '2026-05-08 16:45' }
       ],
-      activeHistoryId: null
+      activeHistoryId: null,
+      draftStatus: 'idle',
+      showDraftRestore: false,
+      draftSavedTime: ''
     }
   },
   computed: {
@@ -734,12 +801,75 @@ export default {
   watch: {
     requirementText() {
       this.clearDownstreamSteps()
+      this.triggerAutoSave()
     },
     uploadedFile() {
       this.clearDownstreamSteps()
+    },
+    standardizedContent() {
+      this.triggerAutoSave()
+    },
+    splitRequirements: {
+      deep: true,
+      handler() {
+        this.triggerAutoSave()
+      }
+    },
+    activeStep() {
+      saveNow(() => this.draftData())
     }
   },
+  mounted() {
+    initDraftManager((status) => {
+      this.draftStatus = status
+    })
+
+    if (hasDraft()) {
+      const draft = getDraft()
+      this.draftSavedTime = formatSaveTime(draft.savedAt)
+      this.showDraftRestore = true
+    }
+  },
+  beforeDestroy() {
+    saveNow(() => this.draftData())
+  },
   methods: {
+    draftData() {
+      return {
+        activeStep: this.activeStep,
+        inputMode: this.inputMode,
+        requirementText: this.requirementText,
+        standardizedContent: this.standardizedContent,
+        splitRequirements: this.splitRequirements,
+        dialogMessages: this.dialogMessages,
+        docVersions: this.docVersions,
+        activeVersionId: this.activeVersionId,
+        versionCounter: this.versionCounter
+      }
+    },
+    triggerAutoSave() {
+      scheduleAutoSave(() => this.draftData())
+    },
+    restoreDraft() {
+      const draft = getDraft()
+      if (!draft) return
+
+      this.activeStep = draft.activeStep || 1
+      this.inputMode = draft.inputMode || 'text'
+      this.requirementText = draft.requirementText || ''
+      this.standardizedContent = draft.standardizedContent || ''
+      this.splitRequirements = draft.splitRequirements || []
+      this.dialogMessages = draft.dialogMessages || []
+      this.docVersions = draft.docVersions || []
+      this.activeVersionId = draft.activeVersionId || null
+      this.versionCounter = draft.versionCounter || 0
+      this.showDraftRestore = false
+      this.draftStatus = 'idle'
+    },
+    dismissDraftRestore() {
+      this.showDraftRestore = false
+      clearDraft()
+    },
     clearDownstreamSteps() {
       this.standardizedContent = ''
       this.splitRequirements = []
@@ -968,6 +1098,7 @@ export default {
       this.docVersions = []
       this.activeVersionId = null
       this.versionCounter = 0
+      clearDraft()
     },
     loadHistory(item) {
       this.activeHistoryId = item.id
@@ -983,6 +1114,7 @@ export default {
       this.activeVersionId = null
       this.versionCounter = 0
       this.activeStep = 1
+      clearDraft()
     },
     async handleLogout() {
       await this.$store.dispatch('logout')
