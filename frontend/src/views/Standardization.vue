@@ -439,6 +439,41 @@
                     </svg>
                     <span>AI头脑风暴</span>
                   </button>
+                  <div class="relative">
+                    <button
+                      @click="showExportMenu = !showExportMenu"
+                      class="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors text-sm font-medium flex items-center space-x-1.5 border border-gray-200"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                      <span>导出</span>
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div v-if="showExportMenu" class="fixed inset-0 z-10" @click="closeExportMenu"></div>
+                    <div v-if="showExportMenu" class="absolute right-0 bottom-full mb-1 w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20">
+                      <button
+                        @click="handleExport('markdown')"
+                        class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors"
+                      >
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Markdown (.md)</span>
+                      </button>
+                      <button
+                        @click="handleExport('docx')"
+                        class="w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2 transition-colors"
+                      >
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        <span>Word 文档 (.docx)</span>
+                      </button>
+                    </div>
+                  </div>
                   <button @click="handleSplitRequirements" class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center space-x-1.5">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7M4 7c0-2 1-3 3-3h10c2 0 3 1 3 3M4 7h16M9 11l3 3 3-3"></path>
@@ -735,6 +770,7 @@
 import { REQUIREMENT_TEMPLATE } from '@/utils/requirementTemplate'
 import { analyzeQuality, getLevelConfig } from '@/utils/qualityScorer'
 import { initDraftManager, getDraft, hasDraft, scheduleAutoSave, saveNow, clearDraft, formatSaveTime } from '@/utils/draftManager'
+import { exportMarkdown, exportDocx } from '@/utils/exportUtils'
 
 export default {
   name: 'Standardization',
@@ -763,7 +799,8 @@ export default {
       activeHistoryId: null,
       draftStatus: 'idle',
       showDraftRestore: false,
-      draftSavedTime: ''
+      draftSavedTime: '',
+      showExportMenu: false
     }
   },
   computed: {
@@ -869,6 +906,26 @@ export default {
     dismissDraftRestore() {
       this.showDraftRestore = false
       clearDraft()
+    },
+    closeExportMenu() {
+      this.showExportMenu = false
+    },
+    async handleExport(format) {
+      this.showExportMenu = false
+      if (!this.standardizedContent) return
+
+      const timestamp = new Date().toISOString().slice(0, 10)
+      const filename = `需求规格说明书_${timestamp}`
+
+      try {
+        if (format === 'markdown') {
+          exportMarkdown(this.standardizedContent, filename + '.md')
+        } else if (format === 'docx') {
+          await exportDocx(this.standardizedContent, filename + '.docx')
+        }
+      } catch (e) {
+        console.error('导出失败:', e)
+      }
     },
     clearDownstreamSteps() {
       this.standardizedContent = ''
