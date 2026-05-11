@@ -492,21 +492,77 @@
 
           <div class="w-1/2 flex flex-col">
             <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-              <span class="text-sm font-medium text-gray-700">实时预览</span>
-              <span class="text-xs text-gray-400">每次调整后自动更新</span>
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-700">文档预览</span>
+                <span class="text-xs text-gray-400">版本 {{ activeVersionId }}</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <select
+                  v-model="activeVersionId"
+                  @change="switchVersion(activeVersionId)"
+                  class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 bg-white text-gray-600 outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option
+                    v-for="v in docVersions"
+                    :key="v.id"
+                    :value="v.id"
+                  >
+                    v{{ v.id }} - {{ v.description }}
+                  </option>
+                </select>
+                <button
+                  v-if="docVersions.length > 0 && activeVersionId !== docVersions[docVersions.length - 1].id"
+                  @click="restoreVersion(activeVersionId)"
+                  class="px-2.5 py-1.5 text-xs text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors flex items-center space-x-1"
+                >
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  </svg>
+                  <span>恢复此版本</span>
+                </button>
+              </div>
             </div>
-            <div class="flex-1 overflow-y-auto p-4">
-              <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="px-4 py-2 border-b border-gray-100 flex items-center space-x-4 flex-shrink-0">
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-400"></span>
+                <span class="text-xs text-gray-400">新增</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>
+                <span class="text-xs text-gray-400">修改</span>
+              </div>
+              <div class="flex items-center space-x-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>
+                <span class="text-xs text-gray-400">删除</span>
+              </div>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+              <div class="border border-gray-200 rounded-lg m-4 overflow-hidden">
                 <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex items-center space-x-2">
                   <div class="flex space-x-1.5">
                     <div class="w-3 h-3 rounded-full bg-red-400"></div>
                     <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
                     <div class="w-3 h-3 rounded-full bg-green-400"></div>
                   </div>
-                  <span class="text-xs text-gray-400 ml-2">Markdown 预览</span>
+                  <span class="text-xs text-gray-400 ml-2">{{ currentVersion ? currentVersion.timestamp : '' }}</span>
                 </div>
-                <div class="px-6 py-4 font-mono text-sm leading-relaxed text-gray-700 whitespace-pre-wrap bg-white min-h-[300px]">
-                  {{ dialogPreviewContent || standardizedContent || '暂无内容' }}
+                <div class="font-mono text-sm leading-relaxed bg-white min-h-[300px]">
+                  <div
+                    v-for="(line, idx) in highlightedPreviewLines"
+                    :key="idx"
+                    class="px-6 py-0.5 flex"
+                    :class="{
+                      'bg-green-50': line.type === 'added',
+                      'bg-yellow-50': line.type === 'modified',
+                      'bg-red-50 line-through text-gray-400': line.type === 'removed'
+                    }"
+                  >
+                    <span class="w-6 text-xs text-gray-300 flex-shrink-0 select-none text-right mr-3">{{ idx + 1 }}</span>
+                    <span class="flex-1 whitespace-pre-wrap">{{ line.text }}</span>
+                  </div>
+                  <div v-if="highlightedPreviewLines.length === 0" class="px-6 py-4 text-gray-400">
+                    暂无内容
+                  </div>
                 </div>
               </div>
             </div>
@@ -536,6 +592,9 @@ export default {
       dialogMessages: [],
       dialogInput: '',
       dialogPreviewContent: '',
+      docVersions: [],
+      activeVersionId: null,
+      versionCounter: 0,
       historyList: [
         { id: '1', title: '用户登录系统需求', date: '2026-05-10 14:30' },
         { id: '2', title: '数据导出功能需求', date: '2026-05-09 10:15' },
@@ -550,6 +609,18 @@ export default {
         return this.requirementText.trim().length > 0
       }
       return this.uploadedFile !== null
+    },
+    currentVersion() {
+      return this.docVersions.find(v => v.id === this.activeVersionId) || null
+    },
+    highlightedPreviewLines() {
+      if (!this.currentVersion) return []
+      const currentIdx = this.docVersions.findIndex(v => v.id === this.activeVersionId)
+      if (currentIdx <= 0) {
+        return this.currentVersion.content.split('\n').map(line => ({ text: line, type: 'unchanged' }))
+      }
+      const prevContent = this.docVersions[currentIdx - 1].content
+      return this.computeDiff(prevContent, this.currentVersion.content)
     }
   },
   watch: {
@@ -620,6 +691,14 @@ export default {
     openBrainstormDialog() {
       this.dialogInput = ''
       this.dialogPreviewContent = this.standardizedContent
+      this.versionCounter = 1
+      this.docVersions = [{
+        id: this.versionCounter,
+        content: this.standardizedContent,
+        timestamp: this.formatTime(new Date()),
+        description: '初始版本'
+      }]
+      this.activeVersionId = this.versionCounter
       this.showDialog = true
     },
     sendQuickMessage(text) {
@@ -683,12 +762,91 @@ export default {
       msg.confirmed = true
       msg.rejected = false
       this.standardizedContent = this.dialogPreviewContent
+      this.versionCounter++
+      this.docVersions.push({
+        id: this.versionCounter,
+        content: this.dialogPreviewContent,
+        timestamp: this.formatTime(new Date()),
+        description: '采纳AI建议后的版本'
+      })
+      this.activeVersionId = this.versionCounter
     },
     rejectProposal(index) {
       const msg = this.dialogMessages[index]
       msg.rejected = true
       msg.confirmed = false
       this.dialogPreviewContent = this.standardizedContent
+    },
+    switchVersion(versionId) {
+      this.activeVersionId = versionId
+      const version = this.docVersions.find(v => v.id === versionId)
+      if (version) {
+        this.dialogPreviewContent = version.content
+      }
+    },
+    restoreVersion(versionId) {
+      const version = this.docVersions.find(v => v.id === versionId)
+      if (!version) return
+      this.standardizedContent = version.content
+      this.versionCounter++
+      this.docVersions.push({
+        id: this.versionCounter,
+        content: version.content,
+        timestamp: this.formatTime(new Date()),
+        description: '恢复自版本 ' + versionId
+      })
+      this.activeVersionId = this.versionCounter
+      this.dialogPreviewContent = version.content
+    },
+    computeDiff(oldText, newText) {
+      const oldLines = oldText.split('\n')
+      const newLines = newText.split('\n')
+      const result = []
+      let i = 0
+      let j = 0
+
+      while (i < oldLines.length || j < newLines.length) {
+        if (i >= oldLines.length) {
+          result.push({ text: newLines[j], type: 'added' })
+          j++
+        } else if (j >= newLines.length) {
+          result.push({ text: oldLines[i], type: 'removed' })
+          i++
+        } else if (oldLines[i] === newLines[j]) {
+          result.push({ text: newLines[j], type: 'unchanged' })
+          i++
+          j++
+        } else {
+          const nextOldInNew = newLines.indexOf(oldLines[i], j)
+          const nextNewInOld = oldLines.indexOf(newLines[j], i)
+
+          if (nextOldInNew === -1 && nextNewInOld === -1) {
+            result.push({ text: newLines[j], type: 'modified' })
+            i++
+            j++
+          } else if (nextNewInOld === -1 || (nextOldInNew !== -1 && nextOldInNew <= nextNewInOld)) {
+            while (j < nextOldInNew) {
+              result.push({ text: newLines[j], type: 'added' })
+              j++
+            }
+          } else {
+            while (i < nextNewInOld) {
+              result.push({ text: oldLines[i], type: 'removed' })
+              i++
+            }
+          }
+        }
+      }
+      return result
+    },
+    formatTime(date) {
+      const pad = n => String(n).padStart(2, '0')
+      return date.getFullYear() + '-' +
+        pad(date.getMonth() + 1) + '-' +
+        pad(date.getDate()) + ' ' +
+        pad(date.getHours()) + ':' +
+        pad(date.getMinutes()) + ':' +
+        pad(date.getSeconds())
     },
     newRequirement() {
       this.activeHistoryId = null
@@ -699,6 +857,9 @@ export default {
       this.standardizedContent = ''
       this.splitRequirements = []
       this.dialogMessages = []
+      this.docVersions = []
+      this.activeVersionId = null
+      this.versionCounter = 0
     },
     loadHistory(item) {
       this.activeHistoryId = item.id
@@ -710,6 +871,9 @@ export default {
         { content: '实现登录失败锁定机制' }
       ]
       this.dialogMessages = []
+      this.docVersions = []
+      this.activeVersionId = null
+      this.versionCounter = 0
       this.activeStep = 1
     },
     async handleLogout() {
