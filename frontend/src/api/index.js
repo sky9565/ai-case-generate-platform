@@ -75,4 +75,26 @@ export const knowledgeAPI = {
   get: (id) => api.get(`/knowledge/docs/${id}`)
 }
 
+export const testDesignAPI = {
+  getRequirementList: (params) => api.get('/test-design/requirements', { params }),
+  getMindMapData: (requirementId) => api.get(`/test-design/requirements/${requirementId}/mindmap`),
+  addTestPoint: (requirementId, data) => api.post(`/test-design/requirements/${requirementId}/test-points`, data),
+  editTestPoint: (testPointId, data) => api.put(`/test-design/test-points/${testPointId}`, data),
+  deleteTestPoint: (testPointId) => api.delete(`/test-design/test-points/${testPointId}`),
+  batchDeleteTestPoints: (data) => api.post('/test-design/test-points/batch-delete', data),
+  markTestPoint: (testPointId, data) => api.put(`/test-design/test-points/${testPointId}/mark`, data),
+  addTestCase: (testPointId, data) => api.post(`/test-design/test-points/${testPointId}/test-cases`, data),
+  editTestCase: (testCaseId, data) => api.put(`/test-design/test-cases/${testCaseId}`, data),
+  deleteTestCase: (testCaseId) => api.delete(`/test-design/test-cases/${testCaseId}`),
+  batchDeleteTestCases: (data) => api.post('/test-design/test-cases/batch-delete', data),
+  markTestCase: (testCaseId, data) => api.put(`/test-design/test-cases/${testCaseId}/mark`, data),
+  createAiSession: (data) => api.post('/test-design/ai-adjust/sessions', data),
+  sendAiMessage: (sessionId, data) => api.post(`/test-design/ai-adjust/sessions/${sessionId}/messages`, data),
+  getAiHistory: (sessionId) => api.get(`/test-design/ai-adjust/sessions/${sessionId}/messages`),
+  generate: (requirementId, data) => api.post(`/test-design/requirements/${requirementId}/generate`, data),
+  getTaskStatus: (taskId) => api.get(`/test-design/tasks/${taskId}`),
+  cancelTask: (taskId) => api.post(`/test-design/tasks/${taskId}/cancel`),
+  exportExcel: (requirementId) => api.get(`/test-design/requirements/${requirementId}/export`, { responseType: 'blob' })
+}
+
 export default api
