@@ -164,7 +164,8 @@ const mockMindMapData = {
                   expand: true,
                   _level: 'testCase',
                   _caseProperty: '正例',
-                  _source: 'AI'
+                  _source: 'AI',
+                  _marked: false
                 },
                 children: []
               },
@@ -185,7 +186,8 @@ const mockMindMapData = {
                   expand: true,
                   _level: 'testCase',
                   _caseProperty: '反例',
-                  _source: 'AI'
+                  _source: 'AI',
+                  _marked: false
                 },
                 children: []
               },
@@ -206,7 +208,8 @@ const mockMindMapData = {
                   expand: true,
                   _level: 'testCase',
                   _caseProperty: '反例',
-                  _source: '人工'
+                  _source: '人工',
+                  _marked: false
                 },
                 children: []
               }
@@ -240,7 +243,8 @@ const mockMindMapData = {
                   expand: true,
                   _level: 'testCase',
                   _caseProperty: '反例',
-                  _source: 'AI'
+                  _source: 'AI',
+                  _marked: false
                 },
                 children: []
               }
@@ -631,6 +635,38 @@ export const mockTestDesignAPI = {
           success: true,
           code: 200,
           message: '删除成功',
+          data: null
+        })
+      }, 200)
+    })
+  },
+
+  editTestCase: (requirementId, data) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          code: 200,
+          message: '操作成功',
+          data: {
+            id: `tc-${Date.now()}`,
+            text: data.text,
+            caseProperty: data.caseProperty,
+            preCondition: data.preCondition || '',
+            steps: data.steps || []
+          }
+        })
+      }, 200)
+    })
+  },
+
+  markTestCase: (testCaseId, data) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          code: 200,
+          message: '操作成功',
           data: null
         })
       }, 200)

@@ -347,6 +347,12 @@
           </svg>
           <span>编辑</span>
         </button>
+        <button @click="toggleMark" class="context-menu-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+          </svg>
+          <span>{{ contextMenu.node && contextMenu.node.marked ? '取消标记保留' : '标记保留' }}</span>
+        </button>
         <div class="border-t border-gray-100 my-1"></div>
         <button @click="deleteTestCase" class="context-menu-item text-red-600 hover:bg-red-50">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -651,6 +657,126 @@
       </div>
     </div>
 
+    <!-- 编辑测试用例弹窗 -->
+    <div v-if="showEditTestCaseDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/30" @click="closeEditTestCaseDialog"></div>
+      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden max-h-[85vh] flex flex-col">
+        <div class="px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <h3 class="text-lg font-semibold text-gray-800">编辑测试用例</h3>
+          <p class="text-xs text-gray-400 mt-1">修改「{{ contextMenu.node && contextMenu.node.text }}」测试用例内容</p>
+        </div>
+        <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              用例名称
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              ref="editTestCaseNameInput"
+              v-model="editTestCaseName"
+              type="text"
+              placeholder="请输入测试用例名称"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              用例类型
+              <span class="text-red-500">*</span>
+            </label>
+            <div class="flex items-center space-x-4">
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" v-model="editTestCaseProperty" value="正例" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" />
+                <span class="ml-2 text-sm text-gray-700">正例</span>
+              </label>
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" v-model="editTestCaseProperty" value="反例" class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300" />
+                <span class="ml-2 text-sm text-gray-700">反例</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">前置条件</label>
+            <textarea
+              v-model="editTestCasePreCondition"
+              rows="2"
+              placeholder="请输入前置条件（选填）"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            ></textarea>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">测试步骤</label>
+              <button
+                @click="addEditTestCaseStep"
+                type="button"
+                class="text-xs text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>添加步骤</span>
+              </button>
+            </div>
+            <div class="space-y-3">
+              <div
+                v-for="(step, index) in editTestCaseSteps"
+                :key="index"
+                class="p-3 bg-gray-50 rounded-lg border border-gray-200 relative"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-blue-600">步骤 {{ index + 1 }}</span>
+                  <button
+                    v-if="editTestCaseSteps.length > 1"
+                    @click="removeEditTestCaseStep(index)"
+                    type="button"
+                    class="text-xs text-red-500 hover:text-red-700"
+                  >删除</button>
+                </div>
+                <div class="space-y-2">
+                  <input
+                    v-model="step.name"
+                    type="text"
+                    placeholder="步骤名称"
+                    class="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input
+                    v-model="step.description"
+                    type="text"
+                    placeholder="步骤描述"
+                    class="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input
+                    v-model="step.stepExpectedResult"
+                    type="text"
+                    placeholder="预期结果"
+                    class="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-if="editTestCaseError" class="text-sm text-red-500">{{ editTestCaseError }}</p>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
+          <button
+            @click="closeEditTestCaseDialog"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >取消</button>
+          <button
+            @click="confirmEditTestCase"
+            :disabled="isEditingTestCase"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <svg v-if="isEditingTestCase" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>{{ isEditingTestCase ? '保存中...' : '保存' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- AI调整弹窗 -->
     <div v-if="showAiAdjustDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeAiAdjustDialog">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl mx-4 h-[85vh] flex flex-col">
@@ -910,6 +1036,13 @@ export default {
       isAddingTestCase: false,
       showDeleteTestCaseDialog: false,
       isDeletingTestCase: false,
+      showEditTestCaseDialog: false,
+      editTestCaseName: '',
+      editTestCaseProperty: '正例',
+      editTestCasePreCondition: '',
+      editTestCaseSteps: [{ name: '', description: '', stepExpectedResult: '' }],
+      editTestCaseError: '',
+      isEditingTestCase: false,
       showAiAdjustDialog: false,
       aiSessionId: '',
       aiMessages: [],
@@ -1487,7 +1620,7 @@ export default {
 
     handleNodeDblClick(node) {
       const level = this.getNodeLevel(node)
-      if (level === 'testPoint') {
+      if (level === 'testPoint' || level === 'testCase') {
         const customData = this.getNodeCustomData(node)
         this.contextMenu = {
           visible: false,
@@ -1497,7 +1630,11 @@ export default {
           node: customData,
           smmNode: node
         }
-        this.editTestPoint()
+        if (level === 'testPoint') {
+          this.editTestPoint()
+        } else {
+          this.editTestCaseDialog()
+        }
       }
     },
 
@@ -2459,6 +2596,143 @@ export default {
 
     editTestCaseDialog() {
       this.hideContextMenu()
+      if (this.contextMenu.node) {
+        this.editTestCaseName = this.contextMenu.node.text || ''
+        this.editTestCaseProperty = this.contextMenu.node.caseProperty || '正例'
+        const parsed = this.parseCaseNoteData(this.contextMenu.smmNode)
+        this.editTestCasePreCondition = parsed.preCondition
+        this.editTestCaseSteps = parsed.steps.length > 0
+          ? parsed.steps
+          : [{ name: '', description: '', stepExpectedResult: '' }]
+      } else {
+        this.editTestCaseName = ''
+        this.editTestCaseProperty = '正例'
+        this.editTestCasePreCondition = ''
+        this.editTestCaseSteps = [{ name: '', description: '', stepExpectedResult: '' }]
+      }
+      this.editTestCaseError = ''
+      this.showEditTestCaseDialog = true
+      this.$nextTick(() => {
+        if (this.$refs.editTestCaseNameInput) {
+          this.$refs.editTestCaseNameInput.focus()
+        }
+      })
+    },
+
+    parseCaseNoteData(smmNode) {
+      const result = { preCondition: '', steps: [] }
+      if (!smmNode) return result
+      const nodeData = smmNode.getData()
+      const note = nodeData.note || ''
+      if (!note) return result
+
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(note, 'text/html')
+
+        const preEl = doc.querySelector('.case-note-precondition')
+        if (preEl) {
+          let text = preEl.textContent || ''
+          text = text.replace(/^前置条件[：:]/, '').trim()
+          result.preCondition = text
+        }
+
+        const stepItems = doc.querySelectorAll('.step-item')
+        stepItems.forEach(item => {
+          const nameEl = item.querySelector('.step-name')
+          const descEl = item.querySelector('.step-desc')
+          const expectEl = item.querySelector('.step-expect')
+          result.steps.push({
+            name: nameEl ? nameEl.textContent.trim() : '',
+            description: descEl ? descEl.textContent.trim() : '',
+            stepExpectedResult: expectEl ? expectEl.textContent.trim() : ''
+          })
+        })
+      } catch (e) {
+        // ignore parse errors
+      }
+
+      return result
+    },
+
+    closeEditTestCaseDialog() {
+      this.showEditTestCaseDialog = false
+      this.editTestCaseName = ''
+      this.editTestCaseProperty = '正例'
+      this.editTestCasePreCondition = ''
+      this.editTestCaseSteps = [{ name: '', description: '', stepExpectedResult: '' }]
+      this.editTestCaseError = ''
+    },
+
+    addEditTestCaseStep() {
+      this.editTestCaseSteps.push({ name: '', description: '', stepExpectedResult: '' })
+    },
+
+    removeEditTestCaseStep(index) {
+      this.editTestCaseSteps.splice(index, 1)
+    },
+
+    async confirmEditTestCase() {
+      const name = this.editTestCaseName.trim()
+      if (!name) {
+        this.editTestCaseError = '请输入测试用例名称'
+        return
+      }
+      if (name.length > 200) {
+        this.editTestCaseError = '测试用例名称不能超过200个字符'
+        return
+      }
+      const hasEmptyStep = this.editTestCaseSteps.some(s => !s.name.trim() || !s.description.trim() || !s.stepExpectedResult.trim())
+      if (hasEmptyStep) {
+        this.editTestCaseError = '请完整填写所有步骤信息'
+        return
+      }
+
+      this.isEditingTestCase = true
+      this.editTestCaseError = ''
+
+      try {
+        const steps = this.editTestCaseSteps.map(s => ({
+          name: s.name.trim(),
+          description: s.description.trim(),
+          stepExpectedResult: s.stepExpectedResult.trim()
+        }))
+
+        const res = await mockTestDesignAPI.editTestCase(this.activeRequirementId, {
+          text: name,
+          caseProperty: this.editTestCaseProperty,
+          preCondition: this.editTestCasePreCondition.trim(),
+          steps
+        })
+
+        if (res.success) {
+          const smmNode = this.contextMenu.smmNode
+          if (smmNode && this.mindMap) {
+            const nodeData = smmNode.getData()
+            const source = nodeData._source || '人工'
+            const caseNote = {
+              caseName: name,
+              caseProperty: this.editTestCaseProperty,
+              preCondition: this.editTestCasePreCondition.trim(),
+              source,
+              steps
+            }
+            nodeData.text = name
+            nodeData.note = buildCaseNote(caseNote)
+            nodeData._caseProperty = this.editTestCaseProperty
+            smmNode.setData(nodeData)
+            this.mindMap.render()
+            this.mindMap.view.fit()
+          }
+          this.closeEditTestCaseDialog()
+        } else {
+          this.editTestCaseError = res.message || '保存失败，请重试'
+        }
+      } catch (e) {
+        this.editTestCaseError = '网络异常，请稍后重试'
+      } finally {
+        this.isEditingTestCase = false
+      }
     },
 
     deleteTestCase() {
@@ -2499,7 +2773,6 @@ export default {
         nodeData._marked = !nodeData._marked
         this.contextMenu.smmNode.setData(nodeData)
         this.mindMap.render()
-        this.mindMap.view.fit()
       }
       this.hideContextMenu()
     },

@@ -41,6 +41,7 @@
   - [4.2 编辑测试用例](#42-编辑测试用例)
   - [4.3 删除测试用例](#43-删除测试用例)
   - [4.4 批量删除测试用例](#44-批量删除测试用例)
+  - [4.5 标记保留测试用例](#45-标记保留测试用例)
 - [5. AI调整](#5-ai调整)
   - [5.1 发起AI调整对话](#51-发起ai调整对话)
   - [5.2 发送对话消息](#52-发送对话消息)
@@ -341,10 +342,101 @@ GET /api/v1/test-design/requirements?page=1&pageSize=20&keyword=登录
 
 ### 4.2 编辑测试用例
 
+编辑指定测试用例的名称、属性、前置条件和步骤信息。
+
 | 属性 | 值 |
 |------|-----|
 | URL | `/api/v1/test-design/test-cases/{testCaseId}` |
 | Method | `PUT` |
+
+**路径参数**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| testCaseId | string | 是 | 测试用例ID |
+
+**请求参数**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| text | string | 是 | 用例名称，最长200字符 |
+| caseProperty | string | 是 | 用例属性：`正例` / `反例` |
+| preCondition | string | 否 | 前置条件 |
+| steps | array | 否 | 测试步骤 |
+| steps[].name | string | 是 | 步骤名称 |
+| steps[].description | string | 是 | 步骤描述 |
+| steps[].stepExpectedResult | string | 是 | 步骤预期结果 |
+
+**请求示例**
+
+```json
+{
+  "text": "用户正常登录系统-编辑后",
+  "caseProperty": "正例",
+  "preCondition": "用户已注册并拥有有效的账号和密码",
+  "steps": [
+    {
+      "name": "输入用户名",
+      "description": "在登录页输入正确的用户名",
+      "stepExpectedResult": "用户名输入框显示输入的用户名"
+    },
+    {
+      "name": "输入密码",
+      "description": "在登录页输入正确的密码",
+      "stepExpectedResult": "密码输入框显示输入的密码"
+    },
+    {
+      "name": "点击登录按钮",
+      "description": "点击登录按钮",
+      "stepExpectedResult": "系统跳转至用户主页"
+    }
+  ]
+}
+```
+
+**响应参数**
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| data.id | string | 测试用例ID |
+| data.text | string | 用例名称 |
+| data.caseProperty | string | 用例属性 |
+| data.preCondition | string | 前置条件 |
+| data.steps | array | 测试步骤 |
+
+**响应示例**
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "操作成功",
+  "data": {
+    "id": "tc-1716000000000",
+    "text": "用户正常登录系统-编辑后",
+    "caseProperty": "正例",
+    "preCondition": "用户已注册并拥有有效的账号和密码",
+    "steps": [
+      {
+        "name": "输入用户名",
+        "description": "在登录页输入正确的用户名",
+        "stepExpectedResult": "用户名输入框显示输入的用户名"
+      },
+      {
+        "name": "输入密码",
+        "description": "在登录页输入正确的密码",
+        "stepExpectedResult": "密码输入框显示输入的密码"
+      },
+      {
+        "name": "点击登录按钮",
+        "description": "点击登录按钮",
+        "stepExpectedResult": "系统跳转至用户主页"
+      }
+    ]
+  },
+  "traceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
 
 ### 4.3 删除测试用例
 
@@ -359,6 +451,53 @@ GET /api/v1/test-design/requirements?page=1&pageSize=20&keyword=登录
 |------|-----|
 | URL | `/api/v1/test-design/test-cases/batch-delete` |
 | Method | `POST` |
+
+**请求参数**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| ids | string[] | 是 | 测试用例ID列表 |
+
+### 4.5 标记保留测试用例
+
+标记或取消标记测试用例为保留状态，在AI调整时标记保留的用例不会被替换或删除。
+
+| 属性 | 值 |
+|------|-----|
+| URL | `/api/v1/test-design/test-cases/{testCaseId}/mark` |
+| Method | `PUT` |
+
+**路径参数**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| testCaseId | string | 是 | 测试用例ID |
+
+**请求参数**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| marked | boolean | 是 | 是否标记保留 |
+
+**请求示例**
+
+```json
+{
+  "marked": true
+}
+```
+
+**响应示例**
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "操作成功",
+  "data": null,
+  "traceId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}
+```
 
 ---
 

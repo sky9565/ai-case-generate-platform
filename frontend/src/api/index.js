@@ -87,6 +87,7 @@ export const testDesignAPI = {
   editTestCase: (testCaseId, data) => api.put(`/test-design/test-cases/${testCaseId}`, data),
   deleteTestCase: (testCaseId) => api.delete(`/test-design/test-cases/${testCaseId}`),
   batchDeleteTestCases: (data) => api.post('/test-design/test-cases/batch-delete', data),
+  markTestCase: (testCaseId, data) => api.put(`/test-design/test-cases/${testCaseId}/mark`, data),
   createAiSession: (data) => api.post('/test-design/ai-adjust/sessions', data),
   sendAiMessage: (sessionId, data) => api.post(`/test-design/ai-adjust/sessions/${sessionId}/messages`, data),
   getAiHistory: (sessionId) => api.get(`/test-design/ai-adjust/sessions/${sessionId}/messages`),
