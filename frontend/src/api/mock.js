@@ -88,7 +88,7 @@ const mockRequirements = [
   }
 ]
 
-const buildCaseNote = (caseData) => {
+export const buildCaseNote = (caseData) => {
   const propClass = caseData.caseProperty === '正例' ? 'positive' : 'negative'
   const propLabel = caseData.caseProperty
   const sourceLabel = caseData.source
@@ -333,58 +333,111 @@ export const mockAuthAPI = {
   applyAiAdjustment: (sessionId, data) => {
     return new Promise((resolve) => {
       setTimeout(() => {
-        const { currentMindMapData, markedTestPointTexts } = data
+        const { currentMindMapData, markedTestPointTexts, nodeType } = data
         const adjustedData = JSON.parse(JSON.stringify(currentMindMapData))
+        const isTestPointLevel = nodeType === 'testPoint'
 
-        const newTestPoints = [
-          { text: '并发场景验证', _level: 'testPoint', _source: 'AI', _marked: false },
-          { text: '超时处理验证', _level: 'testPoint', _source: 'AI', _marked: false },
-          { text: '权限校验测试', _level: 'testPoint', _source: 'AI', _marked: false }
-        ]
+        if (isTestPointLevel) {
+          const newTestCases = [
+            { text: '边界值输入验证', _level: 'testCase', _caseProperty: '反例', _source: 'AI', _marked: false },
+            { text: '空值处理验证', _level: 'testCase', _caseProperty: '反例', _source: 'AI', _marked: false },
+            { text: '正常流程完整验证', _level: 'testCase', _caseProperty: '正例', _source: 'AI', _marked: false }
+          ]
 
-        const traverse = (node) => {
-          if (!node || !node.children) return
-          node.children.forEach((child, idx) => {
-            if (child.data && child.data._level === 'requirement') {
-              const preserved = []
-              const nonPreserved = []
-              ;(child.children || []).forEach(tp => {
-                if (tp.data && tp.data._level === 'testPoint') {
-                  const isMarked = markedTestPointTexts.includes(tp.data.text)
-                  if (isMarked) {
-                    preserved.push(tp)
+          const traverse = (node) => {
+            if (!node || !node.children) return
+            node.children.forEach((child) => {
+              if (child.data && child.data._level === 'testPoint') {
+                const preserved = []
+                const nonPreserved = []
+                ;(child.children || []).forEach(tc => {
+                  if (tc.data && tc.data._level === 'testCase') {
+                    const isMarked = markedTestPointTexts.includes(tc.data.text)
+                    if (isMarked) {
+                      preserved.push(tc)
+                    } else {
+                      nonPreserved.push(tc)
+                    }
                   } else {
-                    nonPreserved.push(tp)
+                    preserved.push(tc)
                   }
-                } else {
-                  preserved.push(tp)
-                }
-              })
+                })
 
-              const aiAdded = newTestPoints.map(tp => ({
-                data: { ...tp },
-                children: []
-              }))
+                const aiAdded = newTestCases.map(tc => ({
+                  data: { ...tc },
+                  children: []
+                }))
 
-              child.children = [...preserved, ...aiAdded]
+                child.children = [...preserved, ...aiAdded]
+              }
+              traverse(child)
+            })
+          }
+
+          traverse(adjustedData)
+
+          resolve({
+            success: true,
+            code: 200,
+            message: 'AI调整完成',
+            data: {
+              adjustedMindMapData: adjustedData,
+              addedCount: newTestCases.length,
+              removedCount: 0,
+              preservedCount: markedTestPointTexts.length
             }
-            traverse(child)
+          })
+        } else {
+          const newTestPoints = [
+            { text: '并发场景验证', _level: 'testPoint', _source: 'AI', _marked: false },
+            { text: '超时处理验证', _level: 'testPoint', _source: 'AI', _marked: false },
+            { text: '权限校验测试', _level: 'testPoint', _source: 'AI', _marked: false }
+          ]
+
+          const traverse = (node) => {
+            if (!node || !node.children) return
+            node.children.forEach((child, idx) => {
+              if (child.data && child.data._level === 'requirement') {
+                const preserved = []
+                const nonPreserved = []
+                ;(child.children || []).forEach(tp => {
+                  if (tp.data && tp.data._level === 'testPoint') {
+                    const isMarked = markedTestPointTexts.includes(tp.data.text)
+                    if (isMarked) {
+                      preserved.push(tp)
+                    } else {
+                      nonPreserved.push(tp)
+                    }
+                  } else {
+                    preserved.push(tp)
+                  }
+                })
+
+                const aiAdded = newTestPoints.map(tp => ({
+                  data: { ...tp },
+                  children: []
+                }))
+
+                child.children = [...preserved, ...aiAdded]
+              }
+              traverse(child)
+            })
+          }
+
+          traverse(adjustedData)
+
+          resolve({
+            success: true,
+            code: 200,
+            message: 'AI调整完成',
+            data: {
+              adjustedMindMapData: adjustedData,
+              addedCount: newTestPoints.length,
+              removedCount: 0,
+              preservedCount: markedTestPointTexts.length
+            }
           })
         }
-
-        traverse(adjustedData)
-
-        resolve({
-          success: true,
-          code: 200,
-          message: 'AI调整完成',
-          data: {
-            adjustedMindMapData: adjustedData,
-            addedCount: newTestPoints.length,
-            removedCount: 0,
-            preservedCount: markedTestPointTexts.length
-          }
-        })
       }, 1000)
     })
   }
@@ -521,12 +574,79 @@ export const mockTestDesignAPI = {
     })
   },
 
+  editTestPoint: (requirementId, data) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          code: 200,
+          message: '操作成功',
+          data: {
+            id: `tp-${Date.now()}`,
+            text: data.text,
+            description: data.description || ''
+          }
+        })
+      }, 200)
+    })
+  },
+
+  deleteTestPoint: (requirementId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          code: 200,
+          message: '删除成功',
+          data: null
+        })
+      }, 200)
+    })
+  },
+
+  addTestCase: (requirementId, data) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          code: 200,
+          message: '操作成功',
+          data: {
+            id: `tc-${Date.now()}`,
+            text: data.text,
+            caseProperty: data.caseProperty,
+            preCondition: data.preCondition || '',
+            steps: data.steps || [],
+            _source: '人工'
+          }
+        })
+      }, 200)
+    })
+  },
+
+  deleteTestCase: (requirementId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve({
+          success: true,
+          code: 200,
+          message: '删除成功',
+          data: null
+        })
+      }, 200)
+    })
+  },
+
   createAiSession: (data) => {
     return new Promise((resolve) => {
       setTimeout(() => {
+        const isTestPointLevel = data.nodeType === 'testPoint'
+        const markLabel = isTestPointLevel ? '测试用例' : '测试点'
         const markedInfo = data.markedNodeIds && data.markedNodeIds.length > 0
-          ? `\n\n已识别到 ${data.markedNodeIds.length} 个标记保留的测试点，调整时将保留这些节点。`
+          ? `\n\n已识别到 ${data.markedNodeIds.length} 个标记保留的${markLabel}，调整时将保留这些节点。`
           : ''
+        const nodeLabel = isTestPointLevel ? '测试点' : '需求'
+        const childLabel = isTestPointLevel ? '测试用例' : '测试点或用例'
         resolve({
           success: true,
           code: 200,
@@ -537,7 +657,7 @@ export const mockTestDesignAPI = {
               {
                 id: 'msg-1',
                 role: 'assistant',
-                content: `你好！我是AI测试设计助手。\n\n当前正在对「${data.nodeType === 'requirement' ? '需求' : '测试点'}」节点进行调整。${markedInfo}\n\n请告诉我你希望如何调整测试点或用例，例如：\n- "增加边界值测试用例"\n- "补充异常场景的测试点"\n- "优化测试用例的步骤描述"\n- "删除冗余的测试点"`,
+                content: `你好！我是AI测试设计助手。\n\n当前正在对「${nodeLabel}」节点进行调整。${markedInfo}\n\n请告诉我你希望如何调整${childLabel}，例如：\n- "增加边界值测试用例"\n- "补充异常场景的测试${isTestPointLevel ? '用例' : '点'}"\n- "优化测试用例的步骤描述"\n- "删除冗余的测试${isTestPointLevel ? '用例' : '点'}"`,
                 timestamp: new Date().toISOString()
               }
             ]

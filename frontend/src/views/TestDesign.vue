@@ -410,6 +410,247 @@
       </div>
     </div>
 
+    <!-- 编辑测试点弹窗 -->
+    <div v-if="showEditTestPointDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/30" @click="closeEditTestPointDialog"></div>
+      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100">
+          <h3 class="text-lg font-semibold text-gray-800">编辑测试点</h3>
+          <p class="text-xs text-gray-400 mt-1">修改「{{ contextMenu.node && contextMenu.node.text }}」测试点内容</p>
+        </div>
+        <div class="px-6 py-4 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              测试点名称
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              ref="editTestPointInput"
+              v-model="editTestPointName"
+              type="text"
+              placeholder="请输入测试点名称"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              @keyup.enter="confirmEditTestPoint"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">测试点描述</label>
+            <textarea
+              v-model="editTestPointDescription"
+              rows="3"
+              placeholder="请输入测试点描述（选填）"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            ></textarea>
+          </div>
+          <p v-if="editTestPointError" class="text-sm text-red-500">{{ editTestPointError }}</p>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+          <button
+            @click="closeEditTestPointDialog"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >取消</button>
+          <button
+            @click="confirmEditTestPoint"
+            :disabled="isEditingTestPoint"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <svg v-if="isEditingTestPoint" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>{{ isEditingTestPoint ? '保存中...' : '保存' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除测试点确认弹窗 -->
+    <div v-if="showDeleteTestPointDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/30" @click="closeDeleteTestPointDialog"></div>
+      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div class="px-6 py-5 text-center">
+          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </div>
+          <h3 class="text-base font-semibold text-gray-800 mb-2">确认删除测试点</h3>
+          <p class="text-sm text-gray-500">
+            确定要删除测试点「{{ contextMenu.node && contextMenu.node.text }}」吗？该操作不可撤销，其下的所有测试用例也将一并删除。
+          </p>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 flex justify-center space-x-3">
+          <button
+            @click="closeDeleteTestPointDialog"
+            class="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >取消</button>
+          <button
+            @click="confirmDeleteTestPoint"
+            :disabled="isDeletingTestPoint"
+            class="px-6 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <svg v-if="isDeletingTestPoint" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>{{ isDeletingTestPoint ? '删除中...' : '确认删除' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加测试用例弹窗 -->
+    <div v-if="showAddTestCaseDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/30" @click="closeAddTestCaseDialog"></div>
+      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden max-h-[85vh] flex flex-col">
+        <div class="px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <h3 class="text-lg font-semibold text-gray-800">添加测试用例</h3>
+          <p class="text-xs text-gray-400 mt-1">在「{{ contextMenu.node && contextMenu.node.text }}」测试点下添加新的测试用例</p>
+        </div>
+        <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              用例名称
+              <span class="text-red-500">*</span>
+            </label>
+            <input
+              ref="testCaseNameInput"
+              v-model="newTestCaseName"
+              type="text"
+              placeholder="请输入测试用例名称"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              用例类型
+              <span class="text-red-500">*</span>
+            </label>
+            <div class="flex items-center space-x-4">
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" v-model="newTestCaseProperty" value="正例" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300" />
+                <span class="ml-2 text-sm text-gray-700">正例</span>
+              </label>
+              <label class="flex items-center cursor-pointer">
+                <input type="radio" v-model="newTestCaseProperty" value="反例" class="w-4 h-4 text-red-600 focus:ring-red-500 border-gray-300" />
+                <span class="ml-2 text-sm text-gray-700">反例</span>
+              </label>
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">前置条件</label>
+            <textarea
+              v-model="newTestCasePreCondition"
+              rows="2"
+              placeholder="请输入前置条件（选填）"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            ></textarea>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="block text-sm font-medium text-gray-700">测试步骤</label>
+              <button
+                @click="addTestCaseStep"
+                type="button"
+                class="text-xs text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+              >
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                <span>添加步骤</span>
+              </button>
+            </div>
+            <div class="space-y-3">
+              <div
+                v-for="(step, index) in newTestCaseSteps"
+                :key="index"
+                class="p-3 bg-gray-50 rounded-lg border border-gray-200 relative"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-semibold text-blue-600">步骤 {{ index + 1 }}</span>
+                  <button
+                    v-if="newTestCaseSteps.length > 1"
+                    @click="removeTestCaseStep(index)"
+                    type="button"
+                    class="text-xs text-red-500 hover:text-red-700"
+                  >删除</button>
+                </div>
+                <div class="space-y-2">
+                  <input
+                    v-model="step.name"
+                    type="text"
+                    placeholder="步骤名称"
+                    class="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input
+                    v-model="step.description"
+                    type="text"
+                    placeholder="步骤描述"
+                    class="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <input
+                    v-model="step.stepExpectedResult"
+                    type="text"
+                    placeholder="预期结果"
+                    class="w-full px-2.5 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <p v-if="addTestCaseError" class="text-sm text-red-500">{{ addTestCaseError }}</p>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 flex-shrink-0">
+          <button
+            @click="closeAddTestCaseDialog"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >取消</button>
+          <button
+            @click="confirmAddTestCase"
+            :disabled="isAddingTestCase"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <svg v-if="isAddingTestCase" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>{{ isAddingTestCase ? '添加中...' : '确认添加' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 删除测试用例确认弹窗 -->
+    <div v-if="showDeleteTestCaseDialog" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div class="absolute inset-0 bg-black/30" @click="closeDeleteTestCaseDialog"></div>
+      <div class="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+        <div class="px-6 py-5 text-center">
+          <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+            </svg>
+          </div>
+          <h3 class="text-base font-semibold text-gray-800 mb-2">确认删除测试用例</h3>
+          <p class="text-sm text-gray-500">
+            确定要删除测试用例「{{ contextMenu.node && contextMenu.node.text }}」吗？该操作不可撤销。
+          </p>
+        </div>
+        <div class="px-6 py-4 bg-gray-50 flex justify-center space-x-3">
+          <button
+            @click="closeDeleteTestCaseDialog"
+            class="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >取消</button>
+          <button
+            @click="confirmDeleteTestCase"
+            :disabled="isDeletingTestCase"
+            class="px-6 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            <svg v-if="isDeletingTestCase" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            <span>{{ isDeletingTestCase ? '删除中...' : '确认删除' }}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- AI调整弹窗 -->
     <div v-if="showAiAdjustDialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="closeAiAdjustDialog">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-6xl mx-4 h-[85vh] flex flex-col">
@@ -424,7 +665,7 @@
               <h3 class="text-base font-semibold text-gray-800">AI 调整</h3>
               <p class="text-xs text-gray-400">
                 当前节点：{{ contextMenu.node && contextMenu.node.text }}
-                <span class="ml-2 px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700">{{ contextMenu.type === 'requirement' ? '需求' : '测试点' }}</span>
+                <span class="ml-2 px-1.5 py-0.5 text-xs rounded" :class="aiAdjustNodeType === 'requirement' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'">{{ aiAdjustNodeType === 'requirement' ? '需求' : '测试点' }}</span>
               </p>
             </div>
           </div>
@@ -575,9 +816,9 @@
               </div>
             </div>
             <div class="px-4 py-2 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-              <span class="text-xs text-gray-400">提示：右键测试点节点可标记保留</span>
+              <span class="text-xs text-gray-400">{{ aiAdjustNodeType === 'requirement' ? '提示：右键测试点节点可标记保留' : '提示：右键测试用例节点可标记保留' }}</span>
               <span class="text-xs text-gray-400">
-                标记保留：{{ markedTestPointCount }} 个测试点
+                {{ aiAdjustNodeType === 'requirement' ? `标记保留：${markedTestPointCount} 个测试点` : `标记保留：${markedTestCaseCount} 个测试用例` }}
               </span>
             </div>
             <div
@@ -612,7 +853,7 @@
 
 <script>
 import MindMap from 'simple-mind-map'
-import { mockTestDesignAPI } from '../api/mock'
+import { mockTestDesignAPI, buildCaseNote } from '../api/mock'
 
 export default {
   name: 'TestDesign',
@@ -653,17 +894,35 @@ export default {
       newTestPointDescription: '',
       addTestPointError: '',
       isAddingTestPoint: false,
+      showEditTestPointDialog: false,
+      editTestPointName: '',
+      editTestPointDescription: '',
+      editTestPointError: '',
+      isEditingTestPoint: false,
+      showDeleteTestPointDialog: false,
+      isDeletingTestPoint: false,
+      showAddTestCaseDialog: false,
+      newTestCaseName: '',
+      newTestCaseProperty: '正例',
+      newTestCasePreCondition: '',
+      newTestCaseSteps: [{ name: '', description: '', stepExpectedResult: '' }],
+      addTestCaseError: '',
+      isAddingTestCase: false,
+      showDeleteTestCaseDialog: false,
+      isDeletingTestCase: false,
       showAiAdjustDialog: false,
       aiSessionId: '',
       aiMessages: [],
       aiInputText: '',
       isAiTyping: false,
+      aiAdjustNodeType: '',
       previewMindMap: null,
       previewMindMapData: null,
       mindMapVersions: [],
       activeMindMapVersionId: null,
       mindMapVersionCounter: 0,
       markedTestPointCount: 0,
+      markedTestCaseCount: 0,
       previewContextMenu: {
         visible: false,
         x: 0,
@@ -1228,8 +1487,17 @@ export default {
 
     handleNodeDblClick(node) {
       const level = this.getNodeLevel(node)
-      if (level === 'testCase') {
-        this.editTestCaseDialog()
+      if (level === 'testPoint') {
+        const customData = this.getNodeCustomData(node)
+        this.contextMenu = {
+          visible: false,
+          x: 0,
+          y: 0,
+          type: level,
+          node: customData,
+          smmNode: node
+        }
+        this.editTestPoint()
       }
     },
 
@@ -1349,6 +1617,7 @@ export default {
 
     aiAdjust() {
       this.hideContextMenu()
+      this.aiAdjustNodeType = this.contextMenu.type
       this.aiMessages = []
       this.aiInputText = ''
       this.isAiTyping = false
@@ -1358,12 +1627,15 @@ export default {
 
     async initAiSession() {
       const markedNodeIds = this.collectMarkedNodeIds()
+      const nodeId = this.aiAdjustNodeType === 'testPoint' && this.contextMenu.smmNode
+        ? this.contextMenu.smmNode.getData().text
+        : this.activeRequirementId
 
       try {
         const res = await mockTestDesignAPI.createAiSession({
           requirementId: this.activeRequirementId,
-          nodeId: this.activeRequirementId,
-          nodeType: this.contextMenu.type,
+          nodeId: nodeId,
+          nodeType: this.aiAdjustNodeType,
           markedNodeIds
         })
 
@@ -1408,11 +1680,13 @@ export default {
       this.aiMessages = []
       this.aiInputText = ''
       this.isAiTyping = false
+      this.aiAdjustNodeType = ''
       this.previewMindMapData = null
       this.mindMapVersions = []
       this.activeMindMapVersionId = null
       this.mindMapVersionCounter = 0
       this.markedTestPointCount = 0
+      this.markedTestCaseCount = 0
     },
 
     async sendAiMessage() {
@@ -1473,8 +1747,9 @@ export default {
 
     collectMarkedNodeIds() {
       const ids = []
+      const targetLevel = this.aiAdjustNodeType === 'testPoint' ? 'testCase' : 'testPoint'
       const traverse = (node) => {
-        if (node.data && node.data._marked && node.data._level === 'testPoint') {
+        if (node.data && node.data._marked && node.data._level === targetLevel) {
           ids.push(node.data.text)
         }
         if (node.children) {
@@ -1495,10 +1770,12 @@ export default {
     },
 
     updateMarkedCount() {
-      let count = 0
+      let tpCount = 0
+      let tcCount = 0
       const traverse = (node) => {
-        if (node.data && node.data._marked && node.data._level === 'testPoint') {
-          count++
+        if (node.data && node.data._marked) {
+          if (node.data._level === 'testPoint') tpCount++
+          if (node.data._level === 'testCase') tcCount++
         }
         if (node.children) {
           node.children.forEach(child => traverse(child))
@@ -1510,7 +1787,8 @@ export default {
       if (sourceData) {
         traverse(sourceData)
       }
-      this.markedTestPointCount = count
+      this.markedTestPointCount = tpCount
+      this.markedTestCaseCount = tcCount
     },
 
     initPreviewMindMap() {
@@ -1630,6 +1908,44 @@ export default {
     transformPreviewData(rootNode) {
       if (!rootNode) return null
 
+      if (this.aiAdjustNodeType === 'testPoint') {
+        const targetTpText = this.contextMenu.node ? this.contextMenu.node.text : ''
+        let targetTp = null
+        const findTestPoint = (node) => {
+          if (node.data && node.data._level === 'testPoint' && node.data.text === targetTpText) {
+            targetTp = node
+            return
+          }
+          if (node.children) {
+            node.children.forEach(child => findTestPoint(child))
+          }
+        }
+        findTestPoint(rootNode)
+
+        if (!targetTp) {
+          return {
+            data: { text: '', _level: 'previewRoot' },
+            children: []
+          }
+        }
+
+        return {
+          data: {
+            text: '',
+            _level: 'previewRoot'
+          },
+          children: [{
+            data: { ...targetTp.data },
+            children: (targetTp.children || [])
+              .filter(child => child.data && child.data._level === 'testCase')
+              .map(tc => ({
+                data: { ...tc.data },
+                children: []
+              }))
+          }]
+        }
+      }
+
       const requirements = (rootNode.children || []).filter(
         child => child.data && child.data._level === 'requirement'
       )
@@ -1705,6 +2021,31 @@ export default {
         const textEl = document.createElement('span')
         textEl.textContent = data.text || ''
         wrapper.appendChild(textEl)
+      } else if (level === 'testCase') {
+        wrapper.style.cssText = `
+          position:relative; background: #ffffff; padding: 8px 14px;
+          border-radius: 8px; border: 1.5px solid #e5e7eb;
+          min-width: 140px; max-width: 260px; font-size: 12px;
+          font-weight: 600; color: #1f2937;
+        `
+        if (data._marked) {
+          const pin = document.createElement('span')
+          pin.style.cssText = 'position:absolute;top:2px;left:2px;font-size:12px;'
+          pin.textContent = '📌'
+          wrapper.appendChild(pin)
+        }
+        const propBadge = document.createElement('span')
+        const isPositive = data._caseProperty === '正例'
+        propBadge.style.cssText = `
+          display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;
+          margin-right:6px;background:${isPositive ? '#dcfce7' : '#fee2e2'};
+          color:${isPositive ? '#166534' : '#991b1b'};
+        `
+        propBadge.textContent = data._caseProperty || '正例'
+        wrapper.appendChild(propBadge)
+        const textEl = document.createElement('span')
+        textEl.textContent = data.text || ''
+        wrapper.appendChild(textEl)
       } else {
         wrapper.textContent = data.text || ''
       }
@@ -1714,7 +2055,8 @@ export default {
 
     handlePreviewContextMenu(e, node) {
       const data = node.getData()
-      if (data._level !== 'testPoint') return
+      const allowedLevel = this.aiAdjustNodeType === 'testPoint' ? 'testCase' : 'testPoint'
+      if (data._level !== allowedLevel) return
 
       const rect = this.$refs.aiMindMapContainer.getBoundingClientRect()
       this.previewContextMenu = {
@@ -1743,22 +2085,47 @@ export default {
         const mainRoot = this.mindMap.getData()
         const previewRoot = this.previewMindMap.getData()
         if (mainRoot && previewRoot) {
-          const mainReqs = mainRoot.children || []
-          const previewReqs = previewRoot.children || []
-          previewReqs.forEach((previewReq, i) => {
-            const mainReq = mainReqs[i]
-            if (!mainReq) return
-            const previewTps = previewReq.children || []
-            const mainTps = mainReq.children || []
-            previewTps.forEach((previewTp, j) => {
-              const mainTp = mainTps[j]
-              if (!mainTp) return
-              const pData = previewTp.data
-              if (pData._level === 'testPoint' && pData.text === data.text) {
-                mainTp.data._marked = data._marked
+          if (this.aiAdjustNodeType === 'testPoint') {
+            const targetTpText = this.contextMenu.node ? this.contextMenu.node.text : ''
+            const findAndSync = (node) => {
+              if (node.data && node.data._level === 'testPoint' && node.data.text === targetTpText && node.children) {
+                const previewTp = (previewRoot.children || [])[0]
+                if (!previewTp) return
+                const previewTcs = previewTp.children || []
+                previewTcs.forEach((previewTc) => {
+                  const pData = previewTc.data
+                  if (pData._level === 'testCase' && pData.text === data.text) {
+                    const mainTc = node.children.find(c => c.data && c.data._level === 'testCase' && c.data.text === data.text)
+                    if (mainTc) {
+                      mainTc.data._marked = data._marked
+                    }
+                  }
+                })
+                return
               }
+              if (node.children) {
+                node.children.forEach(child => findAndSync(child))
+              }
+            }
+            findAndSync(mainRoot)
+          } else {
+            const mainReqs = mainRoot.children || []
+            const previewReqs = previewRoot.children || []
+            previewReqs.forEach((previewReq, i) => {
+              const mainReq = mainReqs[i]
+              if (!mainReq) return
+              const previewTps = previewReq.children || []
+              const mainTps = mainReq.children || []
+              previewTps.forEach((previewTp, j) => {
+                const mainTp = mainTps[j]
+                if (!mainTp) return
+                const pData = previewTp.data
+                if (pData._level === 'testPoint' && pData.text === data.text) {
+                  mainTp.data._marked = data._marked
+                }
+              })
             })
-          })
+          }
         }
         this.mindMap.render()
       }
@@ -1816,14 +2183,16 @@ export default {
       msg.confirmed = true
       msg.rejected = false
 
-      const markedTestPointTexts = this.collectMarkedNodeIds()
+      const markedNodeIds = this.collectMarkedNodeIds()
       const currentMindMapData = this.getMindMapSnapshot()
+      const isTestPointLevel = this.aiAdjustNodeType === 'testPoint'
+      const markLabel = isTestPointLevel ? '测试用例' : '测试点'
 
       this.isAiTyping = true
       this.aiMessages.push({
         id: `msg-system-${Date.now()}`,
         role: 'assistant',
-        content: '⏳ 正在应用AI调整，保留标记的测试点...',
+        content: `⏳ 正在应用AI调整，保留标记的${markLabel}...`,
         type: 'system',
         timestamp: new Date().toISOString()
       })
@@ -1832,7 +2201,8 @@ export default {
       try {
         const res = await mockTestDesignAPI.applyAiAdjustment(this.aiSessionId, {
           currentMindMapData,
-          markedTestPointTexts
+          markedTestPointTexts: markedNodeIds,
+          nodeType: this.aiAdjustNodeType
         })
 
         if (res.success && res.data.adjustedMindMapData && this.mindMap) {
@@ -1840,10 +2210,11 @@ export default {
           this.mindMap.render()
           this.mindMap.view.fit()
 
+          const nodeLabel = isTestPointLevel ? '测试用例' : '测试点'
           this.aiMessages.push({
             id: `msg-result-${Date.now()}`,
             role: 'assistant',
-            content: `✅ AI调整已完成！\n\n- 新增测试点：${res.data.addedCount} 个\n- 保留标记测试点：${res.data.preservedCount} 个\n- 移除测试点：${res.data.removedCount} 个\n\n脑图已更新，您可以在右侧预览区查看最新结果。`,
+            content: `✅ AI调整已完成！\n\n- 新增${nodeLabel}：${res.data.addedCount} 个\n- 保留标记${nodeLabel}：${res.data.preservedCount} 个\n- 移除${nodeLabel}：${res.data.removedCount} 个\n\n脑图已更新，您可以在右侧预览区查看最新结果。`,
             timestamp: new Date().toISOString()
           })
 
@@ -1893,34 +2264,243 @@ export default {
     },
 
     editTestPoint() {
-      console.log('编辑测试点')
       this.hideContextMenu()
+      if (this.contextMenu.node) {
+        this.editTestPointName = this.contextMenu.node.text || ''
+        this.editTestPointDescription = ''
+      }
+      this.editTestPointError = ''
+      this.showEditTestPointDialog = true
+      this.$nextTick(() => {
+        if (this.$refs.editTestPointInput) {
+          this.$refs.editTestPointInput.focus()
+        }
+      })
+    },
+
+    closeEditTestPointDialog() {
+      this.showEditTestPointDialog = false
+      this.editTestPointName = ''
+      this.editTestPointDescription = ''
+      this.editTestPointError = ''
+    },
+
+    async confirmEditTestPoint() {
+      const name = this.editTestPointName.trim()
+      if (!name) {
+        this.editTestPointError = '请输入测试点名称'
+        return
+      }
+      if (name.length > 100) {
+        this.editTestPointError = '测试点名称不能超过100个字符'
+        return
+      }
+
+      this.isEditingTestPoint = true
+      this.editTestPointError = ''
+
+      try {
+        const res = await mockTestDesignAPI.editTestPoint(this.activeRequirementId, {
+          text: name,
+          description: this.editTestPointDescription.trim()
+        })
+
+        if (res.success) {
+          const smmNode = this.contextMenu.smmNode
+          if (smmNode && this.mindMap) {
+            const nodeData = smmNode.getData()
+            nodeData.text = name
+            smmNode.setData(nodeData)
+            this.mindMap.render()
+            this.mindMap.view.fit()
+          }
+          this.closeEditTestPointDialog()
+        } else {
+          this.editTestPointError = res.message || '保存失败，请重试'
+        }
+      } catch (e) {
+        this.editTestPointError = '网络异常，请稍后重试'
+      } finally {
+        this.isEditingTestPoint = false
+      }
     },
 
     deleteTestPoint() {
-      console.log('删除测试点')
       this.hideContextMenu()
+      this.showDeleteTestPointDialog = true
+    },
+
+    closeDeleteTestPointDialog() {
+      this.showDeleteTestPointDialog = false
+    },
+
+    async confirmDeleteTestPoint() {
+      this.isDeletingTestPoint = true
+      try {
+        const res = await mockTestDesignAPI.deleteTestPoint(this.activeRequirementId)
+        if (res.success) {
+          const smmNode = this.contextMenu.smmNode
+          if (smmNode && this.mindMap) {
+            smmNode.remove()
+            this.mindMap.render()
+            this.mindMap.view.fit()
+          }
+          this.closeDeleteTestPointDialog()
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        this.isDeletingTestPoint = false
+      }
     },
 
     addTestCase() {
-      console.log('添加测试用例')
       this.hideContextMenu()
+      this.newTestCaseName = ''
+      this.newTestCaseProperty = '正例'
+      this.newTestCasePreCondition = ''
+      this.newTestCaseSteps = [{ name: '', description: '', stepExpectedResult: '' }]
+      this.addTestCaseError = ''
+      this.showAddTestCaseDialog = true
+      this.$nextTick(() => {
+        if (this.$refs.testCaseNameInput) {
+          this.$refs.testCaseNameInput.focus()
+        }
+      })
+    },
+
+    closeAddTestCaseDialog() {
+      this.showAddTestCaseDialog = false
+      this.newTestCaseName = ''
+      this.newTestCaseProperty = '正例'
+      this.newTestCasePreCondition = ''
+      this.newTestCaseSteps = [{ name: '', description: '', stepExpectedResult: '' }]
+      this.addTestCaseError = ''
+    },
+
+    addTestCaseStep() {
+      this.newTestCaseSteps.push({ name: '', description: '', stepExpectedResult: '' })
+    },
+
+    removeTestCaseStep(index) {
+      this.newTestCaseSteps.splice(index, 1)
+    },
+
+    async confirmAddTestCase() {
+      const name = this.newTestCaseName.trim()
+      if (!name) {
+        this.addTestCaseError = '请输入测试用例名称'
+        return
+      }
+      if (name.length > 200) {
+        this.addTestCaseError = '测试用例名称不能超过200个字符'
+        return
+      }
+      const hasEmptyStep = this.newTestCaseSteps.some(s => !s.name.trim() || !s.description.trim() || !s.stepExpectedResult.trim())
+      if (hasEmptyStep) {
+        this.addTestCaseError = '请完整填写所有步骤信息'
+        return
+      }
+
+      this.isAddingTestCase = true
+      this.addTestCaseError = ''
+
+      try {
+        const steps = this.newTestCaseSteps.map(s => ({
+          name: s.name.trim(),
+          description: s.description.trim(),
+          stepExpectedResult: s.stepExpectedResult.trim()
+        }))
+
+        const res = await mockTestDesignAPI.addTestCase(this.activeRequirementId, {
+          testPointNodeId: this.contextMenu.node && this.contextMenu.node.text,
+          text: name,
+          caseProperty: this.newTestCaseProperty,
+          preCondition: this.newTestCasePreCondition.trim(),
+          steps
+        })
+
+        if (res.success) {
+          const smmNode = this.contextMenu.smmNode
+          if (smmNode && this.mindMap) {
+            const caseNote = {
+              caseName: name,
+              caseProperty: this.newTestCaseProperty,
+              preCondition: this.newTestCasePreCondition.trim(),
+              source: '人工',
+              steps
+            }
+            const newNodeData = {
+              data: {
+                text: name,
+                note: buildCaseNote(caseNote),
+                expand: true,
+                _level: 'testCase',
+                _caseProperty: this.newTestCaseProperty,
+                _source: '人工',
+                _marked: false
+              },
+              children: []
+            }
+            smmNode.appendChild(newNodeData)
+            this.mindMap.render()
+            this.mindMap.view.fit()
+          }
+          this.closeAddTestCaseDialog()
+        } else {
+          this.addTestCaseError = res.message || '添加失败，请重试'
+        }
+      } catch (e) {
+        this.addTestCaseError = '网络异常，请稍后重试'
+      } finally {
+        this.isAddingTestCase = false
+      }
+    },
+
+    editTestCaseDialog() {
+      this.hideContextMenu()
+    },
+
+    deleteTestCase() {
+      this.hideContextMenu()
+      this.showDeleteTestCaseDialog = true
+    },
+
+    closeDeleteTestCaseDialog() {
+      this.showDeleteTestCaseDialog = false
+    },
+
+    async confirmDeleteTestCase() {
+      this.isDeletingTestCase = true
+      try {
+        const res = await mockTestDesignAPI.deleteTestCase(this.activeRequirementId)
+        if (res.success) {
+          const smmNode = this.contextMenu.smmNode
+          if (smmNode && this.mindMap) {
+            smmNode.remove()
+            this.mindMap.render()
+            this.mindMap.view.fit()
+          }
+          this.closeDeleteTestCaseDialog()
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        this.isDeletingTestCase = false
+      }
     },
 
     toggleMark() {
       if (this.contextMenu.node) {
         this.contextMenu.node.marked = !this.contextMenu.node.marked
       }
-      this.hideContextMenu()
-    },
-
-    editTestCaseDialog() {
-      console.log('编辑测试用例')
-      this.hideContextMenu()
-    },
-
-    deleteTestCase() {
-      console.log('删除测试用例')
+      if (this.contextMenu.smmNode && this.mindMap) {
+        const nodeData = this.contextMenu.smmNode.getData()
+        nodeData._marked = !nodeData._marked
+        this.contextMenu.smmNode.setData(nodeData)
+        this.mindMap.render()
+        this.mindMap.view.fit()
+      }
       this.hideContextMenu()
     },
 

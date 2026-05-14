@@ -379,8 +379,13 @@ GET /api/v1/test-design/requirements?page=1&pageSize=20&keyword=登录
 |--------|------|------|------|
 | requirementId | string | 是 | 需求ID |
 | nodeId | string | 是 | 节点ID |
-| nodeType | string | 是 | 节点类型：`requirement` / `testPoint` |
-| markedNodeIds | string[] | 否 | 标记保留的节点ID列表 |
+| nodeType | string | 是 | 节点类型：`requirement`（需求级，调整测试点）/ `testPoint`（测试点级，调整测试用例） |
+| markedNodeIds | string[] | 否 | 标记保留的节点ID列表。当 `nodeType=requirement` 时为标记的测试点ID；当 `nodeType=testPoint` 时为标记的测试用例ID |
+
+**说明**
+
+- 当 `nodeType=requirement` 时，AI调整的层级为：需求 → 测试点，标记保留的为测试点节点
+- 当 `nodeType=testPoint` 时，AI调整的层级为：测试点 → 测试用例，标记保留的为测试用例节点
 
 ### 5.2 发送对话消息
 
@@ -395,6 +400,32 @@ GET /api/v1/test-design/requirements?page=1&pageSize=20&keyword=登录
 |------|-----|
 | URL | `/api/v1/test-design/ai-adjust/sessions/{sessionId}/messages` |
 | Method | `GET` |
+
+### 5.4 应用AI调整
+
+确认AI调整方案并应用到脑图数据。
+
+| 属性 | 值 |
+|------|-----|
+| URL | `/api/v1/test-design/ai-adjust/sessions/{sessionId}/apply` |
+| Method | `POST` |
+
+**请求参数**
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| currentMindMapData | object | 是 | 当前脑图完整数据 |
+| markedTestPointTexts | string[] | 否 | 标记保留的节点文本列表 |
+| nodeType | string | 是 | 节点类型：`requirement` / `testPoint` |
+
+**响应参数**
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| data.adjustedMindMapData | object | 调整后的脑图数据 |
+| data.addedCount | integer | 新增节点数量 |
+| data.removedCount | integer | 移除节点数量 |
+| data.preservedCount | integer | 保留标记节点数量 |
 
 ---
 
