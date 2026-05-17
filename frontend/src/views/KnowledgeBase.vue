@@ -20,7 +20,11 @@
         </div>
 
         <div class="grid grid-cols-4 gap-4">
-          <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div
+            @click="filterByStatus('')"
+            class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200"
+            :class="{ 'ring-2 ring-blue-500 ring-offset-1': filterStatus === '' }"
+          >
             <div class="flex items-center justify-between">
               <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
                 <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -31,7 +35,11 @@
             </div>
             <p class="text-xs text-gray-500 mt-2">文档总数</p>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div
+            @click="filterByStatus('ready')"
+            class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-green-300 hover:shadow-md transition-all duration-200"
+            :class="{ 'ring-2 ring-green-500 ring-offset-1': filterStatus === 'ready' }"
+          >
             <div class="flex items-center justify-between">
               <div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
                 <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,7 +50,11 @@
             </div>
             <p class="text-xs text-gray-500 mt-2">已就绪</p>
           </div>
-          <div class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+          <div
+            @click="filterByStatus('slicing')"
+            class="bg-white rounded-xl p-4 border border-gray-100 shadow-sm cursor-pointer hover:border-blue-300 hover:shadow-md transition-all duration-200"
+            :class="{ 'ring-2 ring-blue-500 ring-offset-1': filterStatus === 'slicing' }"
+          >
             <div class="flex items-center justify-between">
               <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center">
                 <svg class="w-5 h-5 text-blue-500 animate-spin" style="animation-duration: 3s" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -431,8 +443,8 @@
                   保存设置
                 </button>
                 <button
-                  @click="showRecallTestDialog = true"
-                  :disabled="!hasReadyDocs"
+                  @click="openRecallTest"
+                  :disabled="!hasReadyDocs || !recallSettings.enabled"
                   class="px-5 py-2.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -441,7 +453,8 @@
                   <span>召回测试</span>
                 </button>
               </div>
-              <span v-if="!hasReadyDocs" class="text-xs text-gray-400">请先上传并处理文档后再进行召回测试</span>
+              <span v-if="!recallSettings.enabled" class="text-xs text-gray-400">请先开启知识召回开关</span>
+              <span v-else-if="!hasReadyDocs" class="text-xs text-gray-400">请先上传并处理文档后再进行召回测试</span>
             </div>
           </div>
         </div>
@@ -931,6 +944,8 @@ export default {
         maxText: '2 GB',
         usedPercentage: 24.4
       },
+      statusPollingTimer: null,
+      processingDocs: new Set(),
       strategyOptions: [
         { value: 'hybrid', label: '混合召回', description: '结合向量相似度和关键词匹配，兼顾语义理解和精确匹配', recommended: true, detail: '适合大多数场景，特别是包含专业术语、编号规则等需要精确匹配关键词的文档' },
         { value: 'vector', label: '纯向量召回', description: '仅基于语义相似度进行召回，理解意图而非字面匹配', recommended: false, detail: '适合自然语言描述为主的文档，能找到语义相近但用词不同的内容' }
@@ -981,6 +996,13 @@ export default {
     isDuplicateName() {
       return this.uploadError.includes('同名文件')
     }
+  },
+  mounted() {
+    this.startStatusPolling()
+  },
+  beforeDestroy() {
+    this.stopStatusPolling()
+    clearTimeout(this.debounceTimer)
   },
   methods: {
     getFileIconBg(format) {
@@ -1037,6 +1059,83 @@ export default {
         this.toast.show = false
       }, 3000)
     },
+    filterByStatus(status) {
+      if (this.filterStatus === status) {
+        this.filterStatus = ''
+      } else {
+        this.filterStatus = status
+      }
+    },
+    startStatusPolling() {
+      this.stopStatusPolling()
+      this.statusPollingTimer = setInterval(() => {
+        this.pollDocumentStatus()
+      }, 3000)
+    },
+    stopStatusPolling() {
+      if (this.statusPollingTimer) {
+        clearInterval(this.statusPollingTimer)
+        this.statusPollingTimer = null
+      }
+    },
+    pollDocumentStatus() {
+      this.documents.forEach(doc => {
+        if (this.isProcessing(doc.status) && !this.processingDocs.has(doc.id)) {
+          this.simulateDocProcessing(doc)
+        }
+      })
+    },
+    simulateDocProcessing(doc) {
+      this.processingDocs.add(doc.id)
+      const stages = ['uploading', 'slicing', 'vectorizing']
+      const currentIdx = stages.indexOf(doc.status)
+      if (currentIdx === -1 || currentIdx >= stages.length - 1) {
+        this.processingDocs.delete(doc.id)
+        return
+      }
+      const delay = 3000 + Math.random() * 2000
+      setTimeout(() => {
+        const nextStatus = stages[currentIdx + 1]
+        doc.status = nextStatus
+        if (nextStatus === 'vectorizing') {
+          setTimeout(() => {
+            doc.status = 'ready'
+            doc.chunkCount = Math.floor(Math.random() * 15) + 5
+            doc.chunks = this.generateMockChunks(doc.chunkCount)
+            doc.avgChunkLength = Math.floor(Math.random() * 300) + 200
+            doc.content = doc.chunks.map(c => c.content).join('\n\n')
+            this.showToast(`文档「${doc.name}」处理完成`, 'success')
+            this.processingDocs.delete(doc.id)
+          }, 2000 + Math.random() * 2000)
+        } else {
+          this.processingDocs.delete(doc.id)
+        }
+      }, delay)
+    },
+    generateMockChunks(count) {
+      const contents = [
+        '本文档描述了系统测试的关键要点，包括功能测试、性能测试、安全测试等方面的规范要求。',
+        '测试用例应覆盖正常流程、异常流程和边界条件，确保系统的稳定性和可靠性。',
+        '接口测试需要验证请求参数的有效性、响应数据的正确性以及错误处理机制。',
+        '安全测试应包含身份认证、权限控制、数据加密、SQL注入防护等关键测试点。',
+        '性能测试需要关注系统在高并发场景下的响应时间、吞吐量和资源利用率。',
+        '移动端测试应覆盖不同设备型号、操作系统版本和网络环境下的兼容性。',
+        '自动化测试框架的选择应考虑团队技术栈、维护成本和执行效率等因素。',
+        '测试数据管理应遵循数据隔离原则，避免测试数据对生产环境产生影响。',
+        '缺陷管理流程应包含缺陷提交、确认、修复、验证和关闭等关键环节。',
+        '回归测试应在每次代码变更后执行，确保新功能不会影响现有功能的正确性。'
+      ]
+      const chunks = []
+      for (let i = 0; i < count; i++) {
+        const content = contents[i % contents.length] + (i >= contents.length ? '（补充内容）' : '')
+        chunks.push({
+          index: i + 1,
+          content: content,
+          length: content.length
+        })
+      }
+      return chunks
+    },
     handleFileSelect(event) {
       const file = event.target.files[0]
       if (file) this.validateAndSelectFile(file)
@@ -1077,6 +1176,9 @@ export default {
       if (this.selectedFile) {
         const idx = this.documents.findIndex(d => d.name === this.selectedFile.name)
         if (idx !== -1) {
+          const oldDoc = this.documents[idx]
+          this.storageInfo.usedBytes = Math.max(0, this.storageInfo.usedBytes - oldDoc.size)
+          this.processingDocs.delete(oldDoc.id)
           this.documents.splice(idx, 1)
         }
         this.uploadError = ''
@@ -1091,7 +1193,7 @@ export default {
         format: this.selectedFile.name.split('.').pop().toLowerCase(),
         size: this.selectedFile.size,
         uploadTime: new Date().toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-'),
-        status: 'slicing',
+        status: 'uploading',
         chunkCount: 0,
         errorMessage: null,
         retryCount: 0,
@@ -1100,11 +1202,17 @@ export default {
         avgChunkLength: 0
       }
       this.documents.unshift(newDoc)
+      this.storageInfo.usedBytes += this.selectedFile.size
+      this.storageInfo.usedPercentage = Math.round((this.storageInfo.usedBytes / this.storageInfo.maxBytes) * 100 * 10) / 10
+      this.storageInfo.usedText = this.formatFileSize(this.storageInfo.usedBytes)
       this.selectedFile = null
       this.uploadError = ''
       this.showUploadDialog = false
       this.uploading = false
       this.showToast('文档上传成功，正在处理中...', 'success')
+      this.$nextTick(() => {
+        this.simulateDocProcessing(newDoc)
+      })
     },
     viewDocument(doc) {
       this.viewingDocument = doc
@@ -1121,6 +1229,11 @@ export default {
     deleteDocument() {
       const idx = this.documents.findIndex(d => d.id === this.deletingDocument.id)
       if (idx !== -1) {
+        const doc = this.documents[idx]
+        this.storageInfo.usedBytes = Math.max(0, this.storageInfo.usedBytes - doc.size)
+        this.storageInfo.usedPercentage = Math.round((this.storageInfo.usedBytes / this.storageInfo.maxBytes) * 100 * 10) / 10
+        this.storageInfo.usedText = this.formatFileSize(this.storageInfo.usedBytes)
+        this.processingDocs.delete(doc.id)
         this.documents.splice(idx, 1)
       }
       this.showDeleteDialog = false
@@ -1133,9 +1246,12 @@ export default {
         return
       }
       doc.retryCount++
-      doc.status = 'slicing'
+      doc.status = 'uploading'
       doc.errorMessage = null
       this.showToast('正在重新处理文档...', 'info')
+      this.$nextTick(() => {
+        this.simulateDocProcessing(doc)
+      })
     },
     saveSettings() {
       const chunkChanged = this.recallSettings.chunkSize !== this.oldChunkSettings.chunkSize ||
@@ -1144,7 +1260,7 @@ export default {
         this.showReprocessDialog = true
         return
       }
-      this.showToast('设置已保存', 'success')
+      this.showToast('知识召回设置已保存', 'success')
     },
     cancelReprocess() {
       this.showReprocessDialog = false
@@ -1156,20 +1272,41 @@ export default {
       this.oldChunkSettings.chunkOverlap = this.recallSettings.chunkOverlap
       this.documents.forEach(doc => {
         if (doc.status === 'ready') {
-          doc.status = 'slicing'
+          doc.status = 'uploading'
           doc.chunkCount = 0
           doc.chunks = []
+          doc.content = ''
+          doc.avgChunkLength = 0
+          this.processingDocs.delete(doc.id)
+          this.$nextTick(() => {
+            this.simulateDocProcessing(doc)
+          })
         }
       })
       this.showReprocessDialog = false
       this.showToast('切片参数已更新，所有文档正在重新处理...', 'info')
+    },
+    openRecallTest() {
+      this.recallTestQuery = ''
+      this.recallResults = null
+      this.showRecallTestDialog = true
     },
     async testRecall() {
       this.testingRecall = true
       this.recallResults = null
       const start = Date.now()
       await new Promise(resolve => setTimeout(resolve, 800))
-      this.recallResults = MOCK_RECALL_RESULTS
+
+      let results = [...MOCK_RECALL_RESULTS]
+
+      if (!this.recallSettings.enabled) {
+        results = []
+      } else {
+        results = results.filter(r => r.score >= this.recallSettings.scoreThreshold)
+        results = results.slice(0, this.recallSettings.topK)
+      }
+
+      this.recallResults = results
       this.recallTestElapsed = Date.now() - start
       this.testingRecall = false
     }
