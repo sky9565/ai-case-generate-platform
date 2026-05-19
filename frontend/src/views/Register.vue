@@ -46,26 +46,7 @@
           <p v-if="errors.username" class="mt-1 text-sm text-red-400">{{ errors.username }}</p>
         </div>
         
-        <div>
-          <label class="block text-sm font-medium text-white/80 mb-2">邮箱</label>
-          <div class="relative group">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <svg class="h-5 w-5 text-white/50 group-focus-within:text-cyan-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-              </svg>
-            </div>
-            <input
-              v-model="email"
-              type="email"
-              placeholder="请输入邮箱地址"
-              class="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all outline-none text-white placeholder-white/40"
-              :class="{ 'border-red-400': errors.email }"
-              required
-            />
-            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500/20 to-blue-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none"></div>
-          </div>
-          <p v-if="errors.email" class="mt-1 text-sm text-red-400">{{ errors.email }}</p>
-        </div>
+
         
         <div>
           <label class="block text-sm font-medium text-white/80 mb-2">密码</label>
@@ -122,20 +103,7 @@
           <p v-if="errors.confirmPassword" class="mt-1 text-sm text-red-400">{{ errors.confirmPassword }}</p>
         </div>
         
-        <label class="flex items-start cursor-pointer group">
-          <input
-            v-model="agreeTerms"
-            type="checkbox"
-            class="mt-1 mr-3 w-4 h-4 rounded border-white/30 text-cyan-500 focus:ring-cyan-400"
-            required
-          />
-          <span class="text-sm text-white/70 group-hover:text-white transition-colors">
-            我已阅读并同意
-            <a href="#" class="text-cyan-400 hover:text-cyan-300">服务条款</a>
-            和
-            <a href="#" class="text-cyan-400 hover:text-cyan-300">隐私政策</a>
-          </span>
-        </label>
+
         
         <button
           type="submit"
@@ -180,16 +148,13 @@ export default {
   data() {
     return {
       username: '',
-      email: '',
       password: '',
       confirmPassword: '',
       showPassword: false,
-      agreeTerms: false,
       loading: false,
       error: '',
       errors: {
         username: '',
-        email: '',
         password: '',
         confirmPassword: ''
       }
@@ -198,18 +163,10 @@ export default {
   methods: {
     validateForm() {
       let isValid = true
-      this.errors = { username: '', email: '', password: '', confirmPassword: '' }
+      this.errors = { username: '', password: '', confirmPassword: '' }
       
       if (!this.username.trim()) {
         this.errors.username = '请输入用户名'
-        isValid = false
-      }
-      
-      if (!this.email.trim()) {
-        this.errors.email = '请输入邮箱地址'
-        isValid = false
-      } else if (!this.validateEmail(this.email)) {
-        this.errors.email = '请输入有效的邮箱地址'
         isValid = false
       }
       
@@ -229,16 +186,7 @@ export default {
         isValid = false
       }
       
-      if (!this.agreeTerms) {
-        this.error = '请同意服务条款和隐私政策'
-        isValid = false
-      }
-      
       return isValid
-    },
-    validateEmail(email) {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      return re.test(email)
     },
     async handleRegister() {
       this.error = ''
@@ -252,7 +200,6 @@ export default {
       try {
         const response = await mockAuthAPI.register({
           username: this.username,
-          email: this.email,
           password: this.password
         })
         

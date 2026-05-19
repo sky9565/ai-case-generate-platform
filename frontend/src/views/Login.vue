@@ -80,7 +80,7 @@
           <p v-if="errors.password" class="mt-1 text-sm text-red-400">{{ errors.password }}</p>
         </div>
         
-        <div class="flex items-center justify-between">
+        <div class="flex items-center">
           <label class="flex items-center cursor-pointer group">
             <div class="relative">
               <input
@@ -96,7 +96,6 @@
             </div>
             <span class="ml-2 text-sm text-white/70 group-hover:text-white transition-colors">记住我</span>
           </label>
-          <a href="#" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">忘记密码？</a>
         </div>
         
         <button
@@ -130,30 +129,7 @@
           {{ error }}
         </p>
       </div>
-      
-      <div class="mt-6 flex items-center">
-        <div class="flex-1 border-t border-white/10"></div>
-        <span class="px-4 text-sm text-white/50">或</span>
-        <div class="flex-1 border-t border-white/10"></div>
-      </div>
-      
-      <div class="mt-4 flex justify-center space-x-3">
-        <button class="w-11 h-11 bg-white/5 border border-white/20 rounded-xl flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all group">
-          <svg class="w-5 h-5 text-white/60 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.164 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.342-3.369-1.342-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.268 2.75 1.026A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.026 2.747-1.026.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
-          </svg>
-        </button>
-        <button class="w-11 h-11 bg-white/5 border border-white/20 rounded-xl flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all group">
-          <svg class="w-5 h-5 text-white/60 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M20.283 10.356h-8.327v3.451h4.792c-.446 2.193-2.313 3.453-4.792 3.453a5.27 5.27 0 01-5.279-5.28 5.27 5.27 0 015.279-5.279c1.259 0 2.397.447 3.29 1.178l2.6-2.599c-1.584-1.381-3.615-2.233-5.89-2.233a8.908 8.908 0 00-8.934 8.934 8.907 8.907 0 008.934 8.934c4.467 0 8.529-3.249 8.529-8.934 0-.528-.081-1.097-.202-1.625z"/>
-          </svg>
-        </button>
-        <button class="w-11 h-11 bg-white/5 border border-white/20 rounded-xl flex items-center justify-center hover:bg-white/10 hover:border-white/30 transition-all group">
-          <svg class="w-5 h-5 text-white/60 group-hover:text-white transition-colors" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 2C6.477 2 2 6.477 2 12c0 5.013 3.693 9.153 8.505 9.876V14.65H8.031v-2.629h2.474v-1.749c0-2.896 1.411-4.167 3.818-4.167 1.153 0 1.762.086 2.051.124v2.294h-1.642c-1.022 0-1.379.969-1.379 2.061v1.437h2.995l-.406 2.629h-2.588v7.247C18.235 21.236 22 17.062 22 12c0-5.523-4.477-10-10-10z"/>
-          </svg>
-        </button>
-      </div>
+
     </div>
   </div>
 </template>

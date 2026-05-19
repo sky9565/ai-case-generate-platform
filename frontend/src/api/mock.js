@@ -318,8 +318,7 @@ export const mockAuthAPI = {
             id: String(mockUsers.length + 1),
             username: data.username,
             password: data.password,
-            email: data.email,
-            name: data.name || data.username
+            name: data.username
           }
           mockUsers.push(newUser)
           resolve({
@@ -327,7 +326,6 @@ export const mockAuthAPI = {
             user: {
               id: newUser.id,
               username: newUser.username,
-              email: newUser.email,
               name: newUser.name
             }
           })
